@@ -14,6 +14,7 @@ public class Server {
     private List<String> logs;
 
     private static final Object logLock = new Object();
+    private static final Object bondLock = new Object();
 
     private static final Object oLock = new Object();
     private static final Object hLock = new Object();
@@ -26,6 +27,9 @@ public class Server {
 
     private Queue<String> hydrogenQueue;
     private Queue<String> oxygenQueue;
+
+    private volatile int numHydrogen;
+    private volatile int numOxygen;
 
 
     public void start() {
@@ -57,7 +61,7 @@ public class Server {
 
             while (true) {
                 // Check if there are bonds to be made
-                if (hydrogenQueue.size() >= 2 && !oxygenQueue.isEmpty()) {
+                if (numHydrogen >= 2 && numOxygen >= 1) {
                     chemicalBond(outO, outH);
                 }
             }
@@ -73,10 +77,11 @@ public class Server {
         synchronized (oLock) {
             // Push out one molecule of Oxygen
             String oMole = oxygenQueue.poll();
+            numOxygen--;
             logs.add(oMole + " Bonded");
             System.out.println(oMole + " Bonded");
             try {
-                outO.writeObject(oMole + " Bonded");
+                outO.writeObject(oMole + " Bond Request Acknowledged");
             }
             catch(IOException e) {
                 return;
@@ -87,14 +92,16 @@ public class Server {
             // Push out two molecules of Hydrogen
             String hMole1 = hydrogenQueue.poll();
             String hMole2 = hydrogenQueue.poll();
+            numHydrogen--;
+            numHydrogen--;
             logs.add(hMole1 + " Bonded");
             logs.add(hMole2 + " Bonded");
 
             System.out.println(hMole1 + " Bonded");
             System.out.println(hMole2 + " Bonded");
             try {
-                outH.writeObject(hMole1 + " Request Acknowledged");
-                outH.writeObject(hMole2 + " Request Acknowledged");
+                outH.writeObject(hMole1 + " Bond Request Acknowledged");
+                outH.writeObject(hMole2 + " Bond Request Acknowledged");
             }
             catch(IOException e) {
                 return;
@@ -117,15 +124,18 @@ public class Server {
                     try {
                         String received =  (String) inHydrogen.readObject();
 
-                        //TODO: Optional - Add a timestamp to the string to be added to the logs
-                        synchronized (logLock) {
-                            logs.add(received);
-                            System.out.println(received);
+                        if (received != null && !received.isEmpty()) {
+                            //TODO: Optional - Add a timestamp to the string to be added to the logs
+                            synchronized (logLock) {
+                                logs.add(received);
+                                System.out.println(received);
+                            }
                         }
                         synchronized (hLock) {
                             // Hydrogen-n Request -> Hydrogen-n
                             String name = received.split(" ")[0];
                             hydrogenQueue.add(name);
+                            numHydrogen++;
                         }
 
                     } catch (ClassNotFoundException e) {
@@ -154,14 +164,17 @@ public class Server {
                     try {
                         String received =  (String) inOxygen.readObject();
 
-                        //TODO: Optional - Add a timestamp to the string to be added to the logs
-                        synchronized (logLock) {
-                            logs.add(received);
-                            System.out.println(received);
+                        if (received != null && !received.isEmpty()) {
+                            //TODO: Optional - Add a timestamp to the string to be added to the logs
+                            synchronized (logLock) {
+                                logs.add(received);
+                                System.out.println(received);
+                            }
                         }
                         synchronized (oLock) {
                             String name = received.split(" ")[0];
                             oxygenQueue.add(name);
+                            numOxygen++;
                         }
 
                     } catch (ClassNotFoundException e) {

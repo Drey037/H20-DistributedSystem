@@ -19,7 +19,7 @@ public class HydrogenClient {
             System.out.println("Connected to server");
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            Random r = new Random();
+            Random r = new Random(12345);
 
             // new thread for a client
             new listenThread(socket).start();
