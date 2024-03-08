@@ -4,6 +4,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -74,14 +75,16 @@ public class Server {
     }
 
     public void chemicalBond(ObjectOutputStream outO , ObjectOutputStream outH) {
+        String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date());
         synchronized (oLock) {
             // Push out one molecule of Oxygen
             String oMole = oxygenQueue.poll();
             numOxygen--;
-            logs.add(oMole + " Bonded");
-            System.out.println(oMole + " Bonded");
+
+            logs.add(oMole + ", bonded, " + timeStamp);
+            System.out.println(oMole + ", bonded, " + timeStamp);
             try {
-                outO.writeObject(oMole + " Bond Request Acknowledged");
+                outO.writeObject(oMole + ", bonded, " + timeStamp);
             }
             catch(IOException e) {
                 return;
@@ -94,14 +97,14 @@ public class Server {
             String hMole2 = hydrogenQueue.poll();
             numHydrogen--;
             numHydrogen--;
-            logs.add(hMole1 + " Bonded");
-            logs.add(hMole2 + " Bonded");
+            logs.add(hMole1 + ", bonded, " + timeStamp);
+            logs.add(hMole2 + ", bonded, " + timeStamp);
 
-            System.out.println(hMole1 + " Bonded");
-            System.out.println(hMole2 + " Bonded");
+            System.out.println(hMole1 + ", bonded, " + timeStamp);
+            System.out.println(hMole2 + ", bonded, " + timeStamp);
             try {
-                outH.writeObject(hMole1 + " Bond Request Acknowledged");
-                outH.writeObject(hMole2 + " Bond Request Acknowledged");
+                outH.writeObject(hMole1 + ", bonded, " + timeStamp);
+                outH.writeObject(hMole2 + ", bonded, " + timeStamp);
             }
             catch(IOException e) {
                 return;
@@ -125,7 +128,6 @@ public class Server {
                         String received =  (String) inHydrogen.readObject();
 
                         if (received != null && !received.isEmpty()) {
-                            //TODO: Optional - Add a timestamp to the string to be added to the logs
                             synchronized (logLock) {
                                 logs.add(received);
                                 System.out.println(received);
@@ -133,7 +135,7 @@ public class Server {
                         }
                         synchronized (hLock) {
                             // Hydrogen-n Request -> Hydrogen-n
-                            String name = received.split(" ")[0];
+                            String name = received.split(", ")[0];
                             hydrogenQueue.add(name);
                             numHydrogen++;
                         }
@@ -172,7 +174,7 @@ public class Server {
                             }
                         }
                         synchronized (oLock) {
-                            String name = received.split(" ")[0];
+                            String name = received.split(", ")[0];
                             oxygenQueue.add(name);
                             numOxygen++;
                         }

@@ -3,7 +3,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.Random;
+import java.util.Scanner;
 
 public class HydrogenClient {
     private final int HYDROGEN_PORT = 50000;
@@ -24,18 +26,25 @@ public class HydrogenClient {
             // new thread for a client
             new listenThread(socket).start();
 
-            // TEMP for user inout in future purposes
-            //Scanner scan = new Scanner(System.in);
+            // User Input
+            Scanner scan = new Scanner(System.in);
+            int n = 0;
+            do {
+                n = scan.nextInt();
+
+                if (n <= 0)
+                    System.out.println("Enter a valid number of hydrogen molecules");
+            }
+            while (n <= 0);
 
             // Record the start time
             long startTime = System.currentTimeMillis();
 
             // Limit to 5000
-            while (ID <= 50) {
+            while (ID <= n) {
                 int random_time = r.nextInt(1000-50) + 50;
-
-                //TODO: OPTIONAL: Add a timestamp
-                String request = "Hydrogen-" + ID + " Request";
+                String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date());
+                String request = "H-" + ID + ", request, " + timeStamp;
 
                 out.writeObject(request);
                 ID++;

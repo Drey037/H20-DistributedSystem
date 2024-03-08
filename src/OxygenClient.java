@@ -3,6 +3,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -25,18 +26,26 @@ public class OxygenClient {
             // new thread for a client
             new listenThread(socket).start();
 
-            // TEMP for user inout in future purposes
-            //Scanner scan = new Scanner(System.in);
+            // User Input
+            Scanner scan = new Scanner(System.in);
+            int m = 0;
+            do {
+                m = scan.nextInt();
+
+                if (m <= 0)
+                    System.out.println("Enter a valid number of oxygen molecules");
+            }
+            while (m <= 0);
 
             // Record the start time
             long startTime = System.currentTimeMillis();
 
             // Limit to 5000
-            while (ID <= 50) {
+            while (ID <= m) {
                 int random_time = r.nextInt(1000-50) + 50;
 
-                //TODO: OPTIONAL: Add a timestamp
-                String request = "Oxygen-" + ID + " Request";
+                String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date());
+                String request = "O-" + ID + ", request, " + timeStamp;
 
                 out.writeObject(request);
                 ID++;
