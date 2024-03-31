@@ -11,13 +11,13 @@ import java.util.Scanner;
 public class OxygenClient {
     private final int OXYGEN_PORT = 60000;
 
-    private final String SERVER_IP = "169.254.59.134";
+    private final String SERVER_IP = "192.168.68.124";
     public void start() {
         int ID = 1; // START ID INDEX SYSTEM FOR MOLECULES
 
         try {
-            String address = "localhost";
-            //InetAddress address = InetAddress.getByName(SERVER_IP); // Enter host ip address
+            //String address = "localhost";
+            InetAddress address = InetAddress.getByName(SERVER_IP); // Enter host ip address
             Socket socket = new Socket(address, OXYGEN_PORT);
             System.out.println("Connected to server");
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());

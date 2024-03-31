@@ -31,6 +31,7 @@ public class Server {
 
     private volatile int numHydrogen;
     private volatile int numOxygen;
+    private volatile int numH2OMolecules = 0;
 
 
     public void start() {
@@ -47,11 +48,11 @@ public class Server {
 
             // Connection with Hydrogen
             HydrogenSocket = HydrogenServerSocket.accept();
-            System.out.println("Connection from: " + HydrogenSocket);
+            System.out.println("Connection from Hydrogen Client: " + HydrogenSocket);
 
             //Connection with Oxygen
             OxygenSocket = OxygenServerSocket.accept();
-            System.out.println("Connection from: " + OxygenSocket);
+            System.out.println("Connection from Oxygen Client: " + OxygenSocket);
 
             ObjectOutputStream outO = new ObjectOutputStream(OxygenSocket.getOutputStream());
             ObjectOutputStream outH = new ObjectOutputStream(HydrogenSocket.getOutputStream());
@@ -110,6 +111,9 @@ public class Server {
                 return;
             }
         }
+
+        numH2OMolecules++;
+        System.out.println("# H2O Bonded: " + numH2OMolecules);
     }
 
     public class hydrogenThread extends Thread {

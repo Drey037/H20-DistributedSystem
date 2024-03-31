@@ -44,8 +44,8 @@ public class HydrogenClient {
             while (ID <= n) {
                 int random_time = r.nextInt(1000-50) + 50;
                 String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date());
-                String request = "H-" + ID + ", request, " + timeStamp;
 
+                String request = "H-" + ID + ", request, " + timeStamp;
                 out.writeObject(request);
                 ID++;
 
