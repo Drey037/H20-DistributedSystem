@@ -83,7 +83,7 @@ public class Server {
             numOxygen--;
 
             logs.add(oMole + ", bonded, " + timeStamp);
-            System.out.println(oMole + ", bonded, " + timeStamp);
+            //System.out.println(oMole + ", bonded, " + timeStamp);
             try {
                 outO.writeObject(oMole + ", bonded, " + timeStamp);
             }
@@ -101,8 +101,8 @@ public class Server {
             logs.add(hMole1 + ", bonded, " + timeStamp);
             logs.add(hMole2 + ", bonded, " + timeStamp);
 
-            System.out.println(hMole1 + ", bonded, " + timeStamp);
-            System.out.println(hMole2 + ", bonded, " + timeStamp);
+            //System.out.println(hMole1 + ", bonded, " + timeStamp);
+            //System.out.println(hMole2 + ", bonded, " + timeStamp);
             try {
                 outH.writeObject(hMole1 + ", bonded, " + timeStamp);
                 outH.writeObject(hMole2 + ", bonded, " + timeStamp);
@@ -134,7 +134,7 @@ public class Server {
                         if (received != null && !received.isEmpty()) {
                             synchronized (logLock) {
                                 logs.add(received);
-                                System.out.println(received);
+                                //System.out.println(received);
                             }
                         }
                         synchronized (hLock) {
@@ -174,7 +174,7 @@ public class Server {
                             //TODO: Optional - Add a timestamp to the string to be added to the logs
                             synchronized (logLock) {
                                 logs.add(received);
-                                System.out.println(received);
+                                //System.out.println(received);
                             }
                         }
                         synchronized (oLock) {

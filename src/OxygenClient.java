@@ -87,7 +87,7 @@ public class OxygenClient {
 //                            oxygen.add(received);
 //                            numOxygen++;
 //                        }
-                        System.out.println(received);
+                        //System.out.println(received);
 
                     } catch (ClassNotFoundException e) {
                         e.printStackTrace();
