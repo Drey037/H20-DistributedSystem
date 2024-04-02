@@ -2,75 +2,61 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Server {
-    private List<String> logs = new ArrayList<>();
-    private final int HYDROGEN_PORT = 50000;
-    private final int OXYGEN_PORT = 60000;
-    private ExecutorService executor = Executors.newCachedThreadPool();
-    private final Object bondLock = new Object();
+    private static final int HYDROGEN_PORT = 50000;
+    private static final int OXYGEN_PORT = 60000;
+    private ExecutorService executor;
+    private final AtomicInteger numHydrogen = new AtomicInteger(0);
+    private final AtomicInteger numOxygen = new AtomicInteger(0);
+    private final AtomicInteger numH2OMolecules = new AtomicInteger(0);
 
-    private ConcurrentLinkedQueue<String> hydrogenQueue = new ConcurrentLinkedQueue<>();
-    private ConcurrentLinkedQueue<String> oxygenQueue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<String> hydrogenQueue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<String> oxygenQueue = new ConcurrentLinkedQueue<>();
 
-    private AtomicInteger numHydrogen = new AtomicInteger(0);
-    private AtomicInteger numOxygen = new AtomicInteger(0);
-    private AtomicInteger numH2OMolecules = new AtomicInteger(0);
-
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public Server() {
+        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+    }
 
     public void start() {
         try {
-            ServerSocket HydrogenServerSocket = new ServerSocket(HYDROGEN_PORT);
-            ServerSocket OxygenServerSocket = new ServerSocket(OXYGEN_PORT);
+            ServerSocket hydrogenServerSocket = new ServerSocket(HYDROGEN_PORT);
+            ServerSocket oxygenServerSocket = new ServerSocket(OXYGEN_PORT);
             System.out.println("Server is listening...");
 
-            // Start separate threads for handling hydrogen and oxygen connections
-            executor.execute(() -> handleConnections(HydrogenServerSocket, true));
-            executor.execute(() -> handleConnections(OxygenServerSocket, false));
+            executor.execute(() -> handleConnections(hydrogenServerSocket, true));
+            executor.execute(() -> handleConnections(oxygenServerSocket, false));
         } catch (IOException e) {
             System.err.println("Server start error: " + e.getMessage());
         }
     }
 
     private void handleConnections(ServerSocket serverSocket, boolean isHydrogen) {
-        executor.execute(() -> {
+        try {
             while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    Socket clientSocket = serverSocket.accept();
-                    System.out.println("Connection from " + (isHydrogen ? "Hydrogen" : "Oxygen") + " Client: " + clientSocket);
-                    executor.execute(new ClientThread(clientSocket, isHydrogen));
-                } catch (IOException e) {
-                    System.err.println("Error accepting client connection: " + e.getMessage());
-                }
+                Socket clientSocket = serverSocket.accept();
+                executor.execute(new ClientThread(clientSocket, isHydrogen));
             }
-        });
-    }
-
-    private void logAction(String id, String action) {
-        String timestamp = sdf.format(new Date());
-        String logEntry = String.format("(%s, %s, %s)", id, action, timestamp);
-        System.out.println(logEntry); // Print log for visibility
-        logs.add(logEntry);
+        } catch (IOException e) {
+            System.err.println("Error accepting client connection: " + e.getMessage());
+        }
     }
 
     private class ClientThread implements Runnable {
-        private Socket socket;
-        private boolean isHydrogen;
+        private final Socket socket;
+        private final boolean isHydrogen;
 
         public ClientThread(Socket socket, boolean isHydrogen) {
             this.socket = socket;
             this.isHydrogen = isHydrogen;
         }
 
+        @Override
         public void run() {
             try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
                 while (true) {
@@ -89,35 +75,36 @@ public class Server {
                     }
                 }
             } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
+                System.err.println("Error in ClientThread: " + e.getMessage());
             }
         }
+    }
+
+    private void logAction(String id, String action) {
+        System.out.printf("(%s, %s, %s)\n", id, action, new Date());
     }
 
     private void tryFormingBonds() {
-        synchronized (bondLock) {
-            if (numHydrogen.get() >= 2 && numOxygen.get() >= 1) {
-                chemicalBond();
-            }
+        if (numHydrogen.get() >= 2 && numOxygen.get() >= 1) {
+            chemicalBond();
         }
     }
 
-    private void chemicalBond() {
-        synchronized (bondLock) {
-            if (numHydrogen.get() >= 2 && numOxygen.get() >= 1) {
-                String hMole1 = hydrogenQueue.poll().split(", ")[0];
-                String hMole2 = hydrogenQueue.poll().split(", ")[0];
-                String oMole = oxygenQueue.poll().split(", ")[0];
-
-                logAction(hMole1, "bonded");
-                logAction(hMole2, "bonded");
-                logAction(oMole, "bonded");
-
-                numHydrogen.addAndGet(-2);
-                numOxygen.decrementAndGet();
-
-                numH2OMolecules.incrementAndGet();
-            }
+    private synchronized void chemicalBond() {
+        if (numHydrogen.get() >= 2 && numOxygen.get() >= 1) {
+            String hMole1 = hydrogenQueue.poll().split(", ")[0];
+            String hMole2 = hydrogenQueue.poll().split(", ")[0];
+            String oMole = oxygenQueue.poll().split(", ")[0];
+    
+            logAction(hMole1, "bonded");
+            logAction(hMole2, "bonded");
+            logAction(oMole, "bonded");
+    
+            numHydrogen.addAndGet(-2);
+            numOxygen.decrementAndGet();
+            numH2OMolecules.incrementAndGet();
+    
+            System.out.println("# H2O Bonded: " + numH2OMolecules.get());
         }
     }
 }

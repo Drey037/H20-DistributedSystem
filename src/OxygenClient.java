@@ -2,87 +2,71 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.text.SimpleDateFormat;
-import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class OxygenClient {
-    private final int OXYGEN_PORT = 60000;
+    private static final int OXYGEN_PORT = 60000;
+    private static final String SERVER_IP = "localhost";
     private ExecutorService executor;
+    private Socket socket;
 
     public OxygenClient() {
-        // Initialize the ExecutorService with a cached thread pool
-        executor = Executors.newCachedThreadPool();
+        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     }
 
     public void start() {
-        int ID = 1; // START ID INDEX SYSTEM FOR MOLECULES
+        int ID = 1;
 
         try {
-            String address = "localhost";
-            Socket socket = new Socket(address, OXYGEN_PORT);
+            socket = new Socket(SERVER_IP, OXYGEN_PORT);
             System.out.println("Connected to server");
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            Random r = new Random(12345);
 
-            // Use executor to start the listening thread
             executor.submit(new ListenThread(socket));
 
-            // User Input
             Scanner scan = new Scanner(System.in);
-            int m = 0;
-            do {
-                System.out.print("Enter the number of oxygen molecules: ");
+            System.out.print("Enter the number of oxygen molecules: ");
+            int m = scan.nextInt();
+
+            while (m <= 0) {
+                System.out.println("Enter a valid number of oxygen molecules");
                 m = scan.nextInt();
+            }
 
-                if (m <= 0) {
-                    System.out.println("Enter a valid number of oxygen molecules");
-                }
-            } while (m <= 0);
-
-            // Record the start time
             long startTime = System.currentTimeMillis();
 
-            while (ID <= m) {
-                int random_time = r.nextInt(1000 - 50) + 50;
-                String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date());
-                String request = "O-" + ID + ", request, " + timeStamp;
-
+            for (int i = 0; i < m; i++) {
+                String request = "O-" + (ID++) + ", request";
                 out.writeObject(request);
-                ID++;
-
-                // Random sleep
-                Thread.sleep(random_time);
+                out.flush();
             }
 
             long endTime = System.currentTimeMillis();
             System.out.println("OXYGEN THREAD END");
             System.out.println("Runtime: " + (endTime - startTime) + " milliseconds");
 
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public class ListenThread implements Runnable {
-        protected Socket socket;
+    private static class ListenThread implements Runnable {
+        private final Socket socket;
 
-        public ListenThread(Socket oxygen) {
-            this.socket = oxygen;
+        public ListenThread(Socket socket) {
+            this.socket = socket;
         }
 
         @Override
         public void run() {
-            try (ObjectInputStream inOxygen = new ObjectInputStream(socket.getInputStream())) {
+            try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
-                        String received = (String) inOxygen.readObject();
-                        // Process the received data
+                        String received = (String) in.readObject();
                         System.out.println(received);
-
                     } catch (ClassNotFoundException e) {
                         e.printStackTrace();
                     }
@@ -100,10 +84,16 @@ public class OxygenClient {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
             }
-        } catch (InterruptedException e) {
+            socket.close();
+        } catch (InterruptedException | IOException e) {
             System.err.println("Interrupted during shutdown.");
             executor.shutdownNow();
         }
     }
-    
+
+    public static void main(String[] args) {
+        OxygenClient client = new OxygenClient();
+        client.start();
+        client.shutdown();
+    }
 }
