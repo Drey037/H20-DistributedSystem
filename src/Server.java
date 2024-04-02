@@ -16,6 +16,7 @@ public class Server {
     private final int HYDROGEN_PORT = 50000;
     private final int OXYGEN_PORT = 60000;
     private ExecutorService executor = Executors.newCachedThreadPool();
+    private final Object bondLock = new Object();
 
     private ConcurrentLinkedQueue<String> hydrogenQueue = new ConcurrentLinkedQueue<>();
     private ConcurrentLinkedQueue<String> oxygenQueue = new ConcurrentLinkedQueue<>();
@@ -32,9 +33,9 @@ public class Server {
             ServerSocket OxygenServerSocket = new ServerSocket(OXYGEN_PORT);
             System.out.println("Server is listening...");
 
-            handleConnections(HydrogenServerSocket, true);
-            handleConnections(OxygenServerSocket, false);
-
+            // Start separate threads for handling hydrogen and oxygen connections
+            executor.execute(() -> handleConnections(HydrogenServerSocket, true));
+            executor.execute(() -> handleConnections(OxygenServerSocket, false));
         } catch (IOException e) {
             System.err.println("Server start error: " + e.getMessage());
         }
@@ -44,14 +45,9 @@ public class Server {
         executor.execute(() -> {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    Socket socket = serverSocket.accept();
-                    if (isHydrogen) {
-                        System.out.println("Connection from Hydrogen Client: " + socket);
-                        executor.execute(new ClientThread(socket, true));
-                    } else {
-                        System.out.println("Connection from Oxygen Client: " + socket);
-                        executor.execute(new ClientThread(socket, false));
-                    }
+                    Socket clientSocket = serverSocket.accept();
+                    System.out.println("Connection from " + (isHydrogen ? "Hydrogen" : "Oxygen") + " Client: " + clientSocket);
+                    executor.execute(new ClientThread(clientSocket, isHydrogen));
                 } catch (IOException e) {
                     System.err.println("Error accepting client connection: " + e.getMessage());
                 }
@@ -99,25 +95,29 @@ public class Server {
     }
 
     private void tryFormingBonds() {
-        while (numHydrogen.get() >= 2 && numOxygen.get() >= 1) {
-            chemicalBond();
+        synchronized (bondLock) {
+            if (numHydrogen.get() >= 2 && numOxygen.get() >= 1) {
+                chemicalBond();
+            }
         }
     }
 
     private void chemicalBond() {
-        if (numHydrogen.get() >= 2 && numOxygen.get() >= 1) {
-            String hMole1 = hydrogenQueue.poll().split(", ")[0];
-            String hMole2 = hydrogenQueue.poll().split(", ")[0];
-            String oMole = oxygenQueue.poll().split(", ")[0];
+        synchronized (bondLock) {
+            if (numHydrogen.get() >= 2 && numOxygen.get() >= 1) {
+                String hMole1 = hydrogenQueue.poll().split(", ")[0];
+                String hMole2 = hydrogenQueue.poll().split(", ")[0];
+                String oMole = oxygenQueue.poll().split(", ")[0];
 
-            logAction(hMole1, "bonded");
-            logAction(hMole2, "bonded");
-            logAction(oMole, "bonded");
+                logAction(hMole1, "bonded");
+                logAction(hMole2, "bonded");
+                logAction(oMole, "bonded");
 
-            numHydrogen.addAndGet(-2);
-            numOxygen.decrementAndGet();
+                numHydrogen.addAndGet(-2);
+                numOxygen.decrementAndGet();
 
-            numH2OMolecules.incrementAndGet();
+                numH2OMolecules.incrementAndGet();
+            }
         }
     }
 }
