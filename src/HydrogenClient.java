@@ -58,7 +58,7 @@ public class HydrogenClient {
             System.out.println("HYDROGEN THREAD END");
             System.out.println("Runtime: " + (endTime - startTime) + " milliseconds");
 
-            socket.close();
+            ///socket.close();
         } catch (IOException e) {
             //e.printStackTrace();
         } catch (InterruptedException e) {

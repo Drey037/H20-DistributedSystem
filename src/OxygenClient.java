@@ -16,8 +16,8 @@ public class OxygenClient {
         int ID = 1; // START ID INDEX SYSTEM FOR MOLECULES
 
         try {
-            //String address = "localhost";
-            InetAddress address = InetAddress.getByName(SERVER_IP); // Enter host ip address
+            String address = "localhost";
+            //InetAddress address = InetAddress.getByName(SERVER_IP); // Enter host ip address
             Socket socket = new Socket(address, OXYGEN_PORT);
             System.out.println("Connected to server");
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -57,7 +57,7 @@ public class OxygenClient {
             System.out.println("OXYGEN THREAD END");
             System.out.println("Runtime: " + (endTime - startTime) + " milliseconds");
 
-            socket.close();
+            //socket.close();
         } catch (IOException e) {
             //e.printStackTrace();
         } catch (InterruptedException e) {
